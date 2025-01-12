@@ -1,0 +1,15 @@
+{% extends 'main/base.html' %}
+{% block content %}
+<body>
+    <h1>Blog</h1>
+    <a href="{% url 'post_new' %}">글쓰기</a><br/>
+    {% for list in postlist %}
+    <a href="{% url 'post_detail' list.pk %}">{{ list.title }} {{ list.date_posted }}</a>
+    {% if list.author == request.user %}
+    <a href="{% url 'post_delete' list.pk %}">X</a>
+    {% endif %}
+    <br/>
+    {% endfor %}
+    <a href="/">메인페이지</a>
+</body>
+{% endblock %}
