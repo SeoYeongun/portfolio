@@ -8,6 +8,7 @@
     {% if list.author == request.user %}
     <a href="{% url 'post_delete' list.pk %}">X</a>
     {% endif %}
+    <p>좋아요: {{ list.total_likes }}</p>
     <br/>
     {% endfor %}
     <a href="/">메인페이지</a>
