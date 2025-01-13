@@ -4,6 +4,18 @@
 <body>
   <img src="{{ post.images.url }}" alt="{{ post.title }}"><br/>
   {{ post.content }}<br/>
+  {% if user.is_authenticated %}
+    <form action="{% url 'post_like' post.pk %}" method="POST">
+        {% csrf_token %}
+        {% if user in post.likes.all %}
+            <button type="submit" class="fa-solid fa-heart"></button>
+        {% else %}
+            <button type="submit" class="fa-regular fa-heart"></button>
+        {% endif %}
+    </form>
+  {% endif %}
+
+<p>{{ post.total_likes }}명이 좋아합니다.</p>
   <h2>댓글 목록</h2>
   <ul>
   {% for comment in comments %}
@@ -21,3 +33,4 @@
 {% endif %}
 </body>
 {% endblock %}
+

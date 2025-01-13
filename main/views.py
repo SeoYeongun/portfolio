@@ -1,10 +1,14 @@
 from django.shortcuts import render, redirect
 from django.urls import reverse_lazy
 from django.core.exceptions import PermissionDenied
+from django.views.decorators.http import require_POST
 from django.views.generic import DetailView
 from django.views.generic.edit import CreateView, DeleteView
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views import View
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
 from django.views.generic import TemplateView
 from .models import Post, Comment
 from .forms import PostForm, SignUpForm, CommentForm
@@ -89,4 +93,13 @@ class CommentView(LoginRequiredMixin, TemplateView):
     form_class = CommentForm
     context_object_name = 'comments'
     template_name = 'main/post_detail.html'
+
+def post_like(request, pk):
+    post = get_object_or_404(Post, pk=pk)
+    if request.user in post.likes.all():
+        post.likes.remove(request.user)  # 좋아요 취소
+    else:
+        post.likes.add(request.user)  # 좋아요 추가
+    return redirect('post_detail', pk=pk)
+
 
