@@ -1,21 +1,24 @@
 from django.urls import path
-from django.contrib import admin
 from django.conf import settings
 from django.conf.urls.static import static
 from . import views
-from main.views import base, blog, PostDetailView, PostCreateView, SignUpView, CustomLoginView, CustomLogoutView, \
-    PostDeleteView
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
-    path('', base, name='base'),
-    path('blog/', blog, name='blog'),
-    path('blog/<int:pk>/',PostDetailView.as_view() , name='post_detail'),
-    path('blog/<int:pk>/like/', views.post_like, name='post_like'),
-    path('blog/post_new/', PostCreateView.as_view(), name='post_new'),
-    path('signup/', SignUpView.as_view(), name='signup'),
-    path('login/', CustomLoginView.as_view(), name='login'),
-    path('logout/', CustomLogoutView.as_view(), name='logout'),
-    path('blog/<int:pk>/delete/', PostDeleteView.as_view(), name='post_delete'),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
+    path('', views.base, name='base'),
+    path('blog/', views.blog, name='blog'),
+    path('post/new/', views.post_create, name='post_new'),
+    path('post/<int:pk>/', views.post_detail, name='post_detail'),
+    path('post/<int:pk>/edit/', views.post_edit, name='post_edit'),
+    path('post/<int:pk>/delete/', views.post_delete, name='post_delete'),
+    path('post/<int:pk>/like/', views.post_like, name='post_like'),
+    path('post/<int:pk>/comment/', views.comment_create, name='comment_create'),
+    path('comment/<int:comment_id>/delete/', views.comment_delete, name='comment_delete'),
+    path('comment/<int:comment_id>/edit/', views.comment_edit, name='comment_edit'),
+    path('comment/<int:pk>/like/', views.comment_like, name='comment_like'),
+    path('comment/<int:pk>/dislike/', views.comment_dislike, name='comment_dislike'),
+    path('user/<str:username>/', views.user_profile, name='user_profile'),
+    path('get_address/', views.get_address_from_coords, name='get_address'),
+    path('map/', views.map_view, name='map'),
+    path('signup/', views.signup, name='signup'),
+    path('chat/<str:username>/', views.start_chat, name='start_chat'),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 

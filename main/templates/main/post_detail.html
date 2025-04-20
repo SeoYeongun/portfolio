@@ -1,37 +1,178 @@
 {% extends 'main/base.html' %}
+{% load static %}
 
 {% block content %}
-<body>
-  <img src="{{ post.image.url }}" alt="{{ post.title }}"><br/>
-  {{ post.content }}<br/>
-  {% if user.is_authenticated %}
-    <form action="{% url 'post_like' post.pk %}" method="POST">
-        {% csrf_token %}
-        {% if user in post.likes.all %}
-            <button type="submit" class="fa-solid fa-heart"></button>
-        {% else %}
-            <button type="submit" class="fa-regular fa-heart"></button>
-        {% endif %}
-    </form>
-  {% endif %}
+<div class="container mt-4">
+    <div class="card mb-4">
+        <div class="card-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div class="dropdown">
+                    <a href="#" class="text-decoration-none dropdown-toggle" id="userMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-user"></i>
+                        <strong>{{ post.author.username }}</strong>
+                    </a>
+                    <ul class="dropdown-menu" aria-labelledby="userMenu">
+                        <li><a class="dropdown-item" href="{% url 'user_profile' username=post.author.username %}">프로필 보기</a></li>
+                        <li><a class="dropdown-item" href="#" onclick="openChat('{{ post.author.username }}')">1:1 채팅 시작</a></li>
+                    </ul>
+                    <small class="text-muted">
+                        작성일: {{ post.date_posted|date:"Y-m-d H:i" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h2 class="mb-0">{{ post.title }}</h2>
+                <div class="d-flex align-items-center">
+                    <form action="{% url 'post_like' post.pk %}" method="post" class="me-2">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-heart {% if user in post.likes.all %}text-danger{% endif %}"></i>
+                            <span>{{ post.likes.count }}</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% if post.image %}
+            <img src="{{ post.image.url }}" alt="{{ post.title }}" class="img-fluid mb-3"><br/>
+            {% endif %}
+            <p class="card-text">{{ post.content|linebreaks }}</p>
+            {% if post.region %}
+            <p class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ post.region }}</p>
+            {% endif %}
+            <p class="text-muted">카테고리: {{ post.category }}</p>
+            
+            {% if user == post.author %}
+            <div class="mt-3">
+                <a href="{% url 'post_edit' post.pk %}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-edit"></i> 수정
+                </a>
+                <a href="{% url 'post_delete' post.pk %}" class="btn btn-outline-danger">
+                    <i class="fas fa-trash"></i> 삭제
+                </a>
+            </div>
+            {% endif %}
+        </div>
+    </div>
 
-<p>{{ post.total_likes }}명이 좋아합니다.</p>
+    <!-- 댓글 섹션 -->
+    <div class="card">
+        <div class="card-header">
+            <h4>댓글</h4>
+        </div>
+        <div class="card-body">
+            {% if user.is_authenticated %}
+            <form method="post" class="mb-4">
+                {% csrf_token %}
+                <div class="form-group">
+                    {{ comment_form.content }}
+                </div>
+                <button type="submit" class="btn btn-outline-primary mt-2">댓글 작성</button>
+            </form>
+            {% endif %}
 
-  <h2>댓글 목록</h2>
-  <ul>
-  {% for comment in comments %}
-    <li>{{ comment.author.username }}: {{ comment.content }} {{ comment.created_at }}</li>
-  {% endfor %}
-  </ul>
-  {% if user.is_authenticated %}
-    <form method="post">
-    {% csrf_token %}
-    {{ comment_form.as_p }}
-    <button type="submit">댓글 작성</button>
-    </form>
-{% else %}
-  <p>로그인 후 댓글을 작성할 수 있습니다.</p>
-{% endif %}
-</body>
+            <!-- 댓글 목록 -->
+            <div class="comments-section">
+                <h5>댓글 ({{ comments.count }})</h5>
+                {% for comment in comments %}
+                <div class="comment">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'user_profile' username=comment.author.username %}" class="text-decoration-none">
+                                <i class="fas fa-user"></i>
+                                <strong>{{ comment.author.username }}</strong>
+                            </a>
+                            <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</small>
+                        </div>
+                        <div class="btn-group">
+                            <form action="{% url 'comment_like' comment.pk %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-success">
+                                    <i class="fas fa-thumbs-up"></i> {{ comment.likes.count }}
+                                </button>
+                            </form>
+                            <form action="{% url 'comment_dislike' comment.pk %}" method="post" class="d-inline">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger">
+                                    <i class="fas fa-thumbs-down"></i> {{ comment.dislikes.count }}
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                    <p class="comment-content mb-0">{{ comment.content }}</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 채팅 창 -->
+<div id="chatBox" class="card" style="display: none; position: fixed; bottom: 0; right: 0; width: 300px; z-index: 1000;">
+    <div class="card-header">
+        <strong id="chatUser"></strong>님과의 채팅
+        <button type="button" class="btn-close" onclick="closeChat()"></button>
+    </div>
+    <div class="card-body" id="chatMessages" style="height: 200px; overflow-y: auto;">
+        <!-- 채팅 메시지 표시 -->
+    </div>
+    <div class="card-footer">
+        <form id="chatForm" onsubmit="sendMessage(event)">
+            <div class="input-group">
+                <input type="text" id="chatInput" class="form-control" placeholder="메시지 입력">
+                <button type="submit" class="btn btn-primary">전송</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+const chatBox = document.getElementById('chatBox');
+const chatMessages = document.getElementById('chatMessages');
+const chatInput = document.getElementById('chatInput');
+const chatForm = document.getElementById('chatForm');
+let chatSocket;
+
+function openChat(username) {
+    document.getElementById('chatUser').innerText = username;
+    chatBox.style.display = 'block';
+
+    // WebSocket 연결 설정
+    const roomName = username;  // 채팅방 이름을 사용자 이름으로 설정
+    const chatSocket = new WebSocket(
+      "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
+    );
+
+    chatSocket.onmessage = function(e) {
+        const data = JSON.parse(e.data);
+        const messageElement = document.createElement('div');
+        messageElement.textContent = data.message;
+        chatMessages.appendChild(messageElement);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    };
+
+    chatSocket.onclose = function(e) {
+        console.error('Chat socket closed unexpectedly');
+    };
+}
+
+function closeChat() {
+    chatBox.style.display = 'none';
+    if (chatSocket) {
+        chatSocket.close();
+    }
+}
+
+chatForm.onsubmit = function(e) {
+    e.preventDefault();
+    const message = chatInput.value.trim();
+    if (message && chatSocket) {
+        chatSocket.send(JSON.stringify({
+            'message': message
+        }));
+        chatInput.value = '';
+    }
+};
+</script>
 {% endblock %}
-

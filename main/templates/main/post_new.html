@@ -1,10 +1,128 @@
 {% extends 'main/base.html' %}
+{% load static %}
 
 {% block content %}
-  <h1>Create a New Post</h1>
-  <form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-primary">Submit</button>
-  </form>
-{% endblock %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="card-title mb-0">새 게시물 작성</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="postForm">
+                        {% csrf_token %}
+                        {{ form.as_p }}
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-secondary" id="getCurrentLocation" onclick="getCurrentLocation()">현재 위치 가져오기</button>
+                            <button type="submit" class="btn btn-primary" id="submitBtn">게시물 작성</button>
+                            <a href="{% url 'blog' %}" class="btn btn-secondary">취소</a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 카카오 맵 API 스크립트 -->
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ KAKAO_MAP_KEY }}&libraries=services"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM이 로드되었습니다.');
+    
+    const getCurrentLocationBtn = document.getElementById('getCurrentLocation');
+    const regionInput = document.getElementById('id_region');
+    const postForm = document.getElementById('postForm');
+    const regionError = document.getElementById('regionError');
+    
+    if (!getCurrentLocationBtn) {
+        console.error('getCurrentLocation 버튼을 찾을 수 없습니다.');
+        return;
+    }
+    
+    if (!regionInput) {
+        console.error('region 입력 필드를 찾을 수 없습니다.');
+        return;
+    }
+    
+    // 입력 필드 직접 입력 방지
+    regionInput.addEventListener('keydown', function(event) {
+        event.preventDefault();
+        return false;
+    });
+    
+    // 폼 제출 전에 지역 정보 확인
+    postForm.addEventListener('submit', function(event) {
+        if (!regionInput.value.trim()) {
+            event.preventDefault();
+            regionError.style.display = 'block';
+            getCurrentLocationBtn.focus();
+            return false;
+        }
+        return true;
+    });
+    
+    getCurrentLocationBtn.addEventListener('click', function() {
+        console.log('현재 위치 가져오기 버튼이 클릭되었습니다.');
+        
+        if (navigator.geolocation) {
+            console.log('Geolocation API가 지원됩니다.');
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                console.log('현재 위치:', lat, lon);
+                
+                // 카카오 맵 API를 사용하여 좌표로 주소 가져오기
+                const geocoder = new kakao.maps.services.Geocoder();
+                
+                const coord = new kakao.maps.LatLng(lat, lon);
+                
+                geocoder.coord2Address(coord.getLng(), coord.getLat(), function(result, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        console.log('주소 변환 결과:', result);
+                        
+                        if (result && result.length > 0) {
+                            const address = result[0].address;
+                            console.log('변환된 주소:', address);
+                            
+                            // 주소에서 지역 정보 추출 (예: "서울시 강남구" -> "강남구")
+                            const parts = address.address_name.split(' ');
+                            if (parts.length > 1) {
+                                regionInput.value = parts[1];  // 두 번째 단어를 지역으로 사용
+                                console.log('설정된 지역:', parts[1]);
+                            } else {
+                                regionInput.value = address.address_name;
+                                console.log('설정된 지역:', address.address_name);
+                            }
+                            
+                            // 지역 정보가 입력되면 에러 메시지 숨기기
+                            regionError.style.display = 'none';
+                        } else {
+                            console.error('주소 변환 실패: 결과가 없습니다.');
+                            alert('주소를 가져올 수 없습니다.');
+                        }
+                    } else {
+                        console.error('주소 변환 실패:', status);
+                        alert('주소를 가져오는 중 오류가 발생했습니다.');
+                    }
+                });
+            }, function(error) {
+                console.error('위치 정보 오류:', error);
+                alert('위치 정보를 가져올 수 없습니다.');
+            });
+        } else {
+            console.error('Geolocation API가 지원되지 않습니다.');
+            alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+        }
+    });
+    
+    // 페이지 로드 시 자동으로 현재 위치 가져오기
+    setTimeout(function() {
+        getCurrentLocationBtn.click();
+    }, 500);
+});
+</script>
+
+{% endblock %} 

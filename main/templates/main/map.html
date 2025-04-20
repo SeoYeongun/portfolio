@@ -1,0 +1,121 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row">
+        <div class="col-md-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <button id="getCurrentLocation" class="btn btn-primary">
+                    <i class="fas fa-map-marker-alt"></i> 현재 위치
+                </button>
+            </div>
+            <div id="map" style="width:100%;height:600px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- 게시글 데이터를 HTML 데이터 속성으로 전달 -->
+<div id="posts-data" style="display:none;">
+    {% for post in posts %}
+        {% if post.region %}
+            <div class="post-data" 
+                data-id="{{ post.pk }}" 
+                data-title="{{ post.title|escapejs }}" 
+                data-region="{{ post.region|escapejs }}">
+            </div>
+        {% endif %}
+    {% endfor %}
+</div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ KAKAO_MAP_KEY }}&libraries=services"></script>
+<script>
+    var container = document.getElementById('map');
+    var options = {
+        center: new kakao.maps.LatLng(37.566826, 126.9786567),
+        level: 3
+    };
+
+    var map = new kakao.maps.Map(container, options);
+    var currentMarker = null;
+
+    // 현재 위치 표시 함수
+    function getCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                var lat = position.coords.latitude;
+                var lng = position.coords.longitude;
+                
+                var locPosition = new kakao.maps.LatLng(lat, lng);
+                
+                // 이전 마커가 있으면 제거
+                if (currentMarker) {
+                    currentMarker.setMap(null);
+                }
+                
+                // 새로운 마커 생성
+                currentMarker = new kakao.maps.Marker({
+                    map: map,
+                    position: locPosition
+                });
+                
+                map.setCenter(locPosition);
+                
+                // 현재 위치의 주소 가져오기
+                var geocoder = new kakao.maps.services.Geocoder();
+                geocoder.coord2Address(lng, lat, function(result, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        var address = result[0].address.address_name;
+                        var infowindow = new kakao.maps.InfoWindow({
+                            content: '<div style="padding:5px;font-size:12px;">현재 위치: ' + address + '</div>'
+                        });
+                        infowindow.open(map, currentMarker);
+                    }
+                });
+            }, function(error) {
+                console.error('Error getting location:', error);
+                alert('현재 위치를 가져올 수 없습니다.');
+            });
+        } else {
+            alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+        }
+    }
+
+    // 현재 위치 버튼 클릭 이벤트
+    document.getElementById('getCurrentLocation').addEventListener('click', getCurrentLocation);
+
+    // 주소-좌표 변환 객체 생성
+    var geocoder = new kakao.maps.services.Geocoder();
+
+    // HTML 데이터 속성에서 게시글 데이터 가져오기
+    var postElements = document.querySelectorAll('.post-data');
+    var postsData = Array.from(postElements).map(function(element) {
+        return {
+            id: element.getAttribute('data-id'),
+            title: element.getAttribute('data-title'),
+            region: element.getAttribute('data-region')
+        };
+    });
+
+    // 게시글의 지역 정보를 지도에 표시
+    postsData.forEach(function(post) {
+        geocoder.addressSearch(post.region, function(result, status) {
+            if (status === kakao.maps.services.Status.OK) {
+                var coords = new kakao.maps.LatLng(result[0].y, result[0].x);
+                
+                var marker = new kakao.maps.Marker({
+                    map: map,
+                    position: coords
+                });
+                
+                var infowindow = new kakao.maps.InfoWindow({
+                    content: '<div style="padding:5px;font-size:12px;"><a href="/post/' + post.id + '/">' + post.title + '</a></div>'
+                });
+                
+                kakao.maps.event.addListener(marker, 'click', function() {
+                    infowindow.open(map, marker);
+                });
+            }
+        });
+    });
+</script>
+{% endblock %} 

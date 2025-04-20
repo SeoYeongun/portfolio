@@ -1,9 +1,90 @@
-{% extends '../main/base.html' %}
+{% extends 'main/base.html' %}
+
 {% block content %}
-<h2>Sign Up</h2>
-    <form method="POST">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit">Sign Up</button>
-    </form>
-{% endblock %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-body">
+                    <h2 class="card-title text-center mb-4">회원가입</h2>
+                    <form method="post">
+                        {% csrf_token %}
+                        {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                            <small class="form-text text-muted">{{ field.help_text }}</small>
+                            {% endif %}
+                            {% if field.errors %}
+                            <div class="alert alert-danger">
+                                {{ field.errors }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                        
+                        <!-- 현재 위치 정보 -->
+                        <div class="mb-3">
+                            <label for="address" class="form-label">주소</label>
+                            <div class="input-group">
+                                <input type="text" id="address" name="address" class="form-control" readonly>
+                                <button type="button" id="getCurrentLocation" class="btn btn-outline-primary">
+                                    <i class="fas fa-map-marker-alt"></i> 현재 위치
+                                </button>
+                            </div>
+                            <input type="hidden" id="latitude" name="latitude">
+                            <input type="hidden" id="longitude" name="longitude">
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary">회원가입</button>
+                        </div>
+                    </form>
+                    <div class="text-center mt-3">
+                        <p>이미 계정이 있으신가요? <a href="{% url 'login' %}">로그인</a></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript" src="//dapi.kakao.com/v2/maps/sdk.js?appkey={{ KAKAO_MAP_KEY }}&libraries=services"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const getCurrentLocationBtn = document.getElementById('getCurrentLocation');
+    const addressInput = document.getElementById('address');
+    const latitudeInput = document.getElementById('latitude');
+    const longitudeInput = document.getElementById('longitude');
+    
+    getCurrentLocationBtn.addEventListener('click', function() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(function(position) {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
+                latitudeInput.value = lat;
+                longitudeInput.value = lon;
+                
+                // 카카오 맵 API를 사용하여 좌표로 주소 가져오기
+                const geocoder = new kakao.maps.services.Geocoder();
+                geocoder.coord2Address(lon, lat, function(result, status) {
+                    if (status === kakao.maps.services.Status.OK) {
+                        const address = result[0].address.address_name;
+                        addressInput.value = address;
+                    } else {
+                        alert('주소를 가져올 수 없습니다.');
+                    }
+                });
+            }, function(error) {
+                console.error('Error:', error);
+                alert('위치 정보를 가져올 수 없습니다.');
+            });
+        } else {
+            alert('이 브라우저에서는 위치 정보를 지원하지 않습니다.');
+        }
+    });
+});
+</script>
+{% endblock %} 
