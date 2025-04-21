@@ -1,0 +1,107 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-4">
+                <div class="card-body text-center">
+                    <i class="fas fa-user-circle fa-5x mb-3"></i>
+                    <h3>{{ profile_user.username }}</h3>
+                    <p class="text-muted">가입일: {{ profile_user.date_joined|date:"Y-m-d" }}</p>
+                    {% if user_profile.region %}
+                    <p class="text-muted"><i class="fas fa-map-marker-alt"></i> {{ user_profile.region }}</p>
+                    {% endif %}
+                    {% if user == profile_user %}
+                    <a href="{% url 'post_new' %}" class="btn btn-primary mt-2">
+                        <i class="fas fa-plus"></i> 새 게시글 작성
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <ul class="nav nav-tabs card-header-tabs">
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'posts' %}active{% endif %}" 
+                               href="?tab=posts">작성한 게시글</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'likes' %}active{% endif %}" 
+                               href="?tab=likes">좋아요한 게시글</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link {% if active_tab == 'comments' %}active{% endif %}" 
+                               href="?tab=comments">댓글 단 게시글</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="card-body">
+                    {% if active_tab == 'posts' %}
+                        {% if user_posts %}
+                            {% for post in user_posts %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'post_detail' post.pk %}" class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text text-muted">
+                                        {{ post.date_posted|date:"Y-m-d H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">작성한 게시글이 없습니다.</p>
+                        {% endif %}
+                    {% elif active_tab == 'likes' %}
+                        {% if liked_posts %}
+                            {% for post in liked_posts %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'post_detail' post.pk %}" class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text text-muted">
+                                        작성자: {{ post.author.username }} | 
+                                        {{ post.date_posted|date:"Y-m-d H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">좋아요한 게시글이 없습니다.</p>
+                        {% endif %}
+                    {% else %}
+                        {% if commented_posts %}
+                            {% for post in commented_posts %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <h5 class="card-title">
+                                        <a href="{% url 'post_detail' post.pk %}" class="text-decoration-none">
+                                            {{ post.title }}
+                                        </a>
+                                    </h5>
+                                    <p class="card-text text-muted">
+                                        작성자: {{ post.author.username }} | 
+                                        {{ post.date_posted|date:"Y-m-d H:i" }}
+                                    </p>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <p class="text-muted">댓글을 단 게시글이 없습니다.</p>
+                        {% endif %}
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 
