@@ -17,7 +17,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
 from portfolio import settings
-from .models import Post, Comment, UserProfile
+from .models import Post, Comment, UserProfile, Message
 from .forms import PostForm, SignUpForm, CommentForm
 
 
@@ -407,8 +407,10 @@ def get_address_from_coords(request):
     
 @login_required
 def chat_view(request, room_name):
+    messages = Message.objects.filter(room_name=room_name)
     return render(request, 'main/chat.html', {
-        'room_name': room_name
+        'room_name': room_name,
+        'messages': messages
     })
 
 @login_required
