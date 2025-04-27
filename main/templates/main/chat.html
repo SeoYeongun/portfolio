@@ -9,6 +9,13 @@
     <script>
         const roomName = JSON.parse(document.getElementById('room-name').textContent);
 
+        const chatLog = document.querySelector('#chat-log');
+        
+        // 스크롤을 항상 아래로 유지하는 함수
+        function scrollToBottom() {
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+        
         const chatSocket = new WebSocket(
             'ws://'
             + window.location.host
@@ -19,7 +26,8 @@
 
         chatSocket.onmessage = function(e) {
             const data = JSON.parse(e.data);
-            document.querySelector('#chat-log').value += (data.sender + ' : ' + data.message + '\n');
+            chatLog.value += (data.sender + ' : ' + data.message + '\n');
+            scrollToBottom(); // 새 메시지가 추가될 때마다 스크롤을 아래로 이동
         };
 
         chatSocket.onclose = function(e) {

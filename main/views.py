@@ -23,6 +23,9 @@ from .forms import PostForm, SignUpForm, CommentForm
 
 # Create your views here.
 def base(request):
+    if request.user.is_authenticated:
+        unread_messages = Message.objects.filter(receiver=request.user, is_read=False)
+        return render(request, 'main/base.html', {'unread_messages': unread_messages})
     return render(request, 'main/base.html')
 
 def blog(request):

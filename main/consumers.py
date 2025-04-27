@@ -22,6 +22,11 @@ class ChatConsumer(AsyncWebsocketConsumer):
         ).order_by('timestamp')))()
 
         for message in messages:
+            # 메시지를 읽은 것으로 표시
+            if message.receiver == self.scope['user']:
+                message.is_read = True
+                await sync_to_async(message.save)()
+
             await self.send(text_data=json.dumps({
                 'message': message.content,
                 'sender': message.sender.username,

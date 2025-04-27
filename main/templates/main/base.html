@@ -137,6 +137,16 @@
       {% else %}
         <p>로그인 해주세요!</p>
       {% endif %}
+
+      {% if unread_messages %}
+        {% for message in unread_messages %}
+            <a class="nav-link" href="{% url 'chat' room_name=message.sender.username %}">
+              {{ message.sender.username }}님의 새 메시지
+            </a>
+        {% endfor %}
+      {% else %}
+        <a class="nav-link">새 메시지가 없습니다</a>
+    {% endif %}
     {% endblock %}
   </div>
 </body>
