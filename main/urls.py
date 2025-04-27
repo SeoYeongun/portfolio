@@ -20,5 +20,6 @@ urlpatterns = [
     path('get_address/', views.get_address_from_coords, name='get_address'),
     path('map/', views.map_view, name='map'),
     path('signup/', views.signup, name='signup'),
-    path('chat/<str:username>/', views.start_chat, name='start_chat'),
+    path('chat/lobby/', views.lobby_view, name='lobby'),
+    path('chat/<str:room_name>/', views.chat_view, name='chat'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 

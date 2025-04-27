@@ -13,7 +13,7 @@
                     </a>
                     <ul class="dropdown-menu" aria-labelledby="userMenu">
                         <li><a class="dropdown-item" href="{% url 'user_profile' username=post.author.username %}">프로필 보기</a></li>
-                        <li><a class="dropdown-item" href="#" onclick="openChat('{{ post.author.username }}')">1:1 채팅 시작</a></li>
+                        <li><a class="dropdown-item" href="{% url 'chat' room_name=post.author.username %}">1:1 채팅 시작</a></li>
                     </ul>
                     <small class="text-muted">
                         작성일: {{ post.date_posted|date:"Y-m-d H:i" }}
@@ -79,11 +79,17 @@
                 <div class="comment">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <a href="{% url 'user_profile' username=comment.author.username %}" class="text-decoration-none">
-                                <i class="fas fa-user"></i>
-                                <strong>{{ comment.author.username }}</strong>
-                            </a>
-                            <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</small>
+                            <div class="dropdown">
+                                <a href="#" class="text-decoration-none dropdown-toggle" id="commentUserMenu" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-user"></i>
+                                    <strong>{{ comment.author.username }}</strong>
+                                </a>
+                                <ul class="dropdown-menu" aria-labelledby="commentUserMenu">
+                                    <li><a class="dropdown-item" href="{% url 'user_profile' username=comment.author.username %}">프로필 보기</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'chat' room_name=comment.author.username %}">1:1 채팅 시작</a></li>
+                                </ul>
+                                <small class="text-muted">{{ comment.created_at|date:"Y-m-d H:i" }}</small>
+                            </div>
                         </div>
                         <div class="btn-group">
                             <form action="{% url 'comment_like' comment.pk %}" method="post" class="d-inline">
@@ -107,72 +113,4 @@
         </div>
     </div>
 </div>
-
-<!-- 채팅 창 -->
-<div id="chatBox" class="card" style="display: none; position: fixed; bottom: 0; right: 0; width: 300px; z-index: 1000;">
-    <div class="card-header">
-        <strong id="chatUser"></strong>님과의 채팅
-        <button type="button" class="btn-close" onclick="closeChat()"></button>
-    </div>
-    <div class="card-body" id="chatMessages" style="height: 200px; overflow-y: auto;">
-        <!-- 채팅 메시지 표시 -->
-    </div>
-    <div class="card-footer">
-        <form id="chatForm" onsubmit="sendMessage(event)">
-            <div class="input-group">
-                <input type="text" id="chatInput" class="form-control" placeholder="메시지 입력">
-                <button type="submit" class="btn btn-primary">전송</button>
-            </div>
-        </form>
-    </div>
-</div>
-
-<script>
-const chatBox = document.getElementById('chatBox');
-const chatMessages = document.getElementById('chatMessages');
-const chatInput = document.getElementById('chatInput');
-const chatForm = document.getElementById('chatForm');
-let chatSocket;
-
-function openChat(username) {
-    document.getElementById('chatUser').innerText = username;
-    chatBox.style.display = 'block';
-
-    // WebSocket 연결 설정
-    const roomName = username;  // 채팅방 이름을 사용자 이름으로 설정
-    const chatSocket = new WebSocket(
-      "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
-    );
-
-    chatSocket.onmessage = function(e) {
-        const data = JSON.parse(e.data);
-        const messageElement = document.createElement('div');
-        messageElement.textContent = data.message;
-        chatMessages.appendChild(messageElement);
-        chatMessages.scrollTop = chatMessages.scrollHeight;
-    };
-
-    chatSocket.onclose = function(e) {
-        console.error('Chat socket closed unexpectedly');
-    };
-}
-
-function closeChat() {
-    chatBox.style.display = 'none';
-    if (chatSocket) {
-        chatSocket.close();
-    }
-}
-
-chatForm.onsubmit = function(e) {
-    e.preventDefault();
-    const message = chatInput.value.trim();
-    if (message && chatSocket) {
-        chatSocket.send(JSON.stringify({
-            'message': message
-        }));
-        chatInput.value = '';
-    }
-};
-</script>
 {% endblock %}

@@ -264,11 +264,6 @@ def user_profile(request, username):
     
     return render(request, 'main/user_profile.html', context)
 
-def start_chat(request, username):
-    user = get_object_or_404(User, username=username)
-    # 1:1 채팅을 시작하는 로직을 추가
-    return render(request, 'main/chat.html', {'chat_user': user})
-
 @login_required
 def post_delete(request, pk):
     post = get_object_or_404(Post, pk=pk)
@@ -409,5 +404,15 @@ def get_address_from_coords(request):
             return JsonResponse({'error': 'No address found'}, status=404)
     else:
         return JsonResponse({'error': 'Failed to fetch address'}, status=response.status_code)
+    
+@login_required
+def chat_view(request, room_name):
+    return render(request, 'main/chat.html', {
+        'room_name': room_name
+    })
+
+@login_required
+def lobby_view(request):
+    return render(request, 'main/lobby.html')
 
 
