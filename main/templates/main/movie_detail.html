@@ -1,0 +1,33 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-md-4">
+            {% if movie.poster_path %}
+            <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="img-fluid" alt="{{ movie.title }}">
+            {% endif %}
+        </div>
+        <div class="col-md-8">
+            <h1>{{ movie.title }}</h1>
+            <p class="text-muted">개봉일: {{ movie.release_date }}</p>
+            <p class="text-muted">평점: {{ movie.vote_average }}/10</p>
+            <h3>줄거리</h3>
+            <p>{{ movie.overview }}</p>
+            
+            {% if movie.genres %}
+            <h4>장르</h4>
+            <p>
+                {% for genre in movie.genres %}
+                <span class="badge bg-secondary">{{ genre.name }}</span>
+                {% endfor %}
+            </p>
+            {% endif %}
+            
+            {% if movie.runtime %}
+            <p class="text-muted">상영시간: {{ movie.runtime }}분</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -27,8 +27,8 @@ SECRET_KEY = 'django-insecure-+q7j#kd=*yh=w*qt)!gerxzqp*(nufp&u$#h%ld&fl785hhok)
 
 import os
 os.environ["DJANGO_ALLOW_ASYNC_UNSAFE"] = 'true'
-# Kakao Map API Key
-KAKAO_MAP_KEY = config('KAKAO_MAP_KEY')
+
+TMDB_API_KEY = config('TMDB_API_KEY')
 
 DEBUG = True
 

@@ -4,17 +4,22 @@ from django.contrib.auth.models import User
 from .models import Post, Comment, UserProfile
 
 class PostForm(forms.ModelForm):
-    category = forms.CharField(max_length=100, required=False, label='카테고리')
-
     class Meta:
         model = Post
-        fields = ['title', 'content', 'image', 'region', 'category']
+        fields = ['title', 'content', 'category', 'image', 'region']
         widgets = {
-            'title': forms.TextInput(attrs={'class': 'form-control'}),
-            'content': forms.Textarea(attrs={'class': 'form-control', 'rows': 5}),
+            'title': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '리뷰 제목을 입력하세요'}),
+            'content': forms.Textarea(attrs={'class': 'form-control', 'placeholder': '영화에 대한 리뷰를 작성하세요', 'rows': 10}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
             'image': forms.FileInput(attrs={'class': 'form-control'}),
-            'region': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
-            'category': forms.TextInput(attrs={'class': 'form-control', 'readonly': True}),
+            'region': forms.TextInput(attrs={'class': 'form-control', 'placeholder': '현재 위치를 입력하세요'}),
+        }
+        labels = {
+            'title': '리뷰 제목',
+            'content': '리뷰 내용',
+            'category': '영화 장르',
+            'image': '포스터 이미지',
+            'region': '현재 위치',
         }
 
 class CommentForm(forms.ModelForm):

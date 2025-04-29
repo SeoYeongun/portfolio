@@ -1,0 +1,82 @@
+{% extends 'main/base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="mb-4">영화 목록</h1>
+    
+    <!-- 검색 폼 -->
+    <form method="GET" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="영화 제목 검색" value="{{ query }}">
+            <button type="submit" class="btn btn-primary">검색</button>
+        </div>
+    </form>
+    
+    <!-- 영화 목록 -->
+    <div class="row">
+        {% for movie in page_obj %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 position-relative">
+                {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="card-img-top" alt="{{ movie.title }}">
+                <div class="position-absolute bottom-0 end-0 p-2">
+                    {% if movie.release_date and movie.release_date <= today %}
+                    <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-primary btn-sm">리뷰 작성</a>
+                    {% else %}
+                    <button class="btn btn-secondary btn-sm" disabled>개봉 예정</button>
+                    {% endif %}
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <p class="card-text">
+                        <small class="text-muted">개봉일: {{ movie.release_date }}</small>
+                    </p>
+                    <p class="card-text">{{ movie.overview|truncatechars:150 }}</p>
+                </div>
+                <div class="card-footer">
+                    <a href="{% url 'movie_detail' movie.id %}" class="btn btn-info">상세 정보</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                영화가 없습니다.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- 페이지네이션 -->
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+            {% endif %}
+            
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}{% if query %}&q={{ query }}{% endif %}">{{ num }}</a>
+            </li>
+            {% endfor %}
+            
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if query %}&q={{ query }}{% endif %}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %}
+

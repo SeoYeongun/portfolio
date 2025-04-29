@@ -1,0 +1,99 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1>인기 영화</h1>
+    
+    <!-- 검색 폼 -->
+    <form method="GET" class="mb-4">
+        <div class="input-group">
+            <input type="text" name="q" class="form-control" placeholder="영화 제목을 입력하세요" value="{{ query }}">
+            <button type="submit" class="btn btn-primary">검색</button>
+        </div>
+    </form>
+
+    {% if query and results %}
+    <!-- 검색 결과 -->
+    <h2>검색 결과: "{{ query }}"</h2>
+    <div class="row">
+        {% for movie in results %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="card-img-top" alt="{{ movie.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <p class="card-text">{{ movie.overview|truncatechars:150 }}</p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            개봉일: {{ movie.release_date }}<br>
+                            평점: {{ movie.vote_average }}/10
+                        </small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
+                        <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-success">리뷰 작성</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <!-- 인기 영화 목록 -->
+    <div class="row">
+        {% for movie in page_obj %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="card-img-top" alt="{{ movie.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <p class="card-text">{{ movie.overview|truncatechars:150 }}</p>
+                    <p class="card-text">
+                        <small class="text-muted">
+                            개봉일: {{ movie.release_date }}<br>
+                            평점: {{ movie.vote_average }}/10
+                        </small>
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
+                        <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-success">리뷰 작성</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    <!-- 페이지네이션 -->
+    <nav aria-label="Page navigation" class="mt-4">
+        <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">이전</a>
+            </li>
+            {% endif %}
+
+            {% for num in page_obj.paginator.page_range %}
+            <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+            </li>
+            {% endfor %}
+
+            {% if page_obj.has_next %}
+            <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">다음</a>
+            </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+</div>
+{% endblock %} 

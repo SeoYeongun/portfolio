@@ -4,9 +4,22 @@ from django.urls import reverse
 from django.utils import timezone
 
 class Post(models.Model):
+    GENRE_CHOICES = [
+        ('액션', '액션'),
+        ('코미디', '코미디'),
+        ('드라마', '드라마'),
+        ('SF', 'SF'),
+        ('로맨스', '로맨스'),
+        ('스릴러', '스릴러'),
+        ('호러', '호러'),
+        ('애니메이션', '애니메이션'),
+        ('다큐멘터리', '다큐멘터리'),
+        ('판타지', '판타지'),
+    ]
+    
     title = models.CharField(max_length=200)
     content = models.TextField()
-    category = models.CharField(max_length=100)  # 카테고리를 문자열로 저장
+    category = models.CharField(max_length=20, choices=GENRE_CHOICES, default='드라마')
     author = models.ForeignKey(User, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -52,3 +65,14 @@ class Message(models.Model):
 
     def __str__(self):
         return f'{self.sender.username} -> {self.receiver.username}: {self.content[:20]}' 
+
+class Movie(models.Model):
+    title = models.CharField(max_length=200)
+    overview = models.TextField()
+    release_date = models.DateField()
+    poster_path = models.CharField(max_length=200)
+    vote_average = models.FloatField()
+    tmdb_id = models.IntegerField(unique=True)
+    
+    def __str__(self):
+        return self.title 

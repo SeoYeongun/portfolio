@@ -15,11 +15,16 @@ import requests
 from django.db.models import Q, Count
 from django.contrib.auth.forms import UserCreationForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
-
-from portfolio import settings
-from .models import Post, Comment, UserProfile, Message
+from django.conf import settings
+from tmdbv3api import TMDb, Movie, Discover
+from .models import Post, Comment, UserProfile, Message, Movie as MovieModel
 from .forms import PostForm, SignUpForm, CommentForm
+from datetime import datetime
 
+# TMDB 설정
+tmdb = TMDb()
+tmdb.api_key = settings.TMDB_API_KEY
+tmdb.language = 'ko'
 
 # Create your views here.
 def base(request):
@@ -30,7 +35,6 @@ def base(request):
 
 def blog(request):
     search_query = request.GET.get('search', '')
-    region_query = request.GET.get('region', '')
     category_query = request.GET.get('category', '')
     sort_query = request.GET.get('sort', 'latest')  # 기본 정렬 기준은 최신순
 
@@ -41,10 +45,6 @@ def blog(request):
     if search_query:
         posts = posts.filter(title__icontains=search_query)
 
-    # 지역 필터링
-    if region_query:
-        posts = posts.filter(region=region_query)
-
     # 카테고리 필터링
     if category_query:
         posts = posts.filter(category__icontains=category_query)
@@ -54,19 +54,22 @@ def blog(request):
         posts = posts.order_by('-likes')
     elif sort_query == 'comments':
         posts = posts.annotate(comment_count=Count('comments')).order_by('-comment_count')
-    else:
+    else:  # latest
         posts = posts.order_by('-created_at')
 
-    regions = Post.objects.values_list('region', flat=True).distinct()
+    # 카테고리 목록 가져오기
     categories = Post.objects.values_list('category', flat=True).distinct()
 
+    # 페이지네이션
+    paginator = Paginator(posts, 20)  # 한 페이지당 20개
+    page_number = request.GET.get('page')
+    page_obj = paginator.get_page(page_number)
+
     return render(request, 'main/blog.html', {
-        'posts': posts,
+        'posts': page_obj,
         'search_query': search_query,
-        'region_query': region_query,
         'category_query': category_query,
         'sort_query': sort_query,
-        'regions': regions,
         'categories': categories,
     })
 
@@ -115,38 +118,6 @@ class CustomLoginView(LoginView):
 
 class CustomLogoutView(LogoutView):
     next_page = reverse_lazy('base')
-
-@login_required
-def post_create(request):
-    if request.method == 'POST':
-        form = PostForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 지역 정보가 비어있는지 확인
-            region = request.POST.get('region', '').strip()
-            print(f"post_create에서 받은 지역 정보: '{region}'")
-            
-            if not region:
-                print("post_create: 지역 정보가 비어있습니다.")
-                form.add_error(None, '현재 위치를 입력해주세요.')
-                return render(request, 'main/post_new.html', {
-                    'form': form,
-                    'KAKAO_MAP_KEY': settings.KAKAO_MAP_KEY
-                })
-                
-            post = form.save(commit=False)
-            post.author = request.user
-            post.region = region
-            print(f"post_create: 게시물에 설정된 지역 정보: '{post.region}'")
-            post.save()
-            return redirect('blog')
-    else:
-        form = PostForm()
-    
-    return render(request, 'main/post_new.html', {
-        'form': form,
-        'KAKAO_MAP_KEY': settings.KAKAO_MAP_KEY
-    })
-
 
 class PostDeleteView(LoginRequiredMixin, DeleteView):
     model = Post
@@ -363,25 +334,65 @@ def post_new(request):
     if request.method == "POST":
         form = PostForm(request.POST, request.FILES)
         if form.is_valid():
-            region = request.POST.get('region', '').strip()
-            if not region:
-                form.add_error(None, '지역 정보를 입력해주세요.')
-                return render(request, 'main/post_new.html', {
-                    'form': form,
-                    'KAKAO_MAP_KEY': settings.KAKAO_MAP_KEY
-                })
-            
             post = form.save(commit=False)
             post.author = request.user
-            post.region = region
+            
+            # 세션에서 포스터 URL 가져오기
+            poster_url = request.session.get('poster_url')
+            if poster_url:
+                try:
+                    import requests
+                    from django.core.files.base import ContentFile
+                    from django.utils.text import slugify
+                    from io import BytesIO
+                    from PIL import Image
+                    
+                    # 포스터 이미지 다운로드
+                    response = requests.get(poster_url)
+                    if response.status_code == 200:
+                        # 이미지 파일명 생성
+                        filename = f"{slugify(post.title)}.jpg"
+                        
+                        # 이미지 처리
+                        img = Image.open(BytesIO(response.content))
+                        img_io = BytesIO()
+                        img.save(img_io, format='JPEG', quality=85)
+                        img_io.seek(0)
+                        
+                        # 게시물에 이미지 저장
+                        post.image.save(filename, ContentFile(img_io.read()), save=False)
+                        
+                        # 세션에서 포스터 URL 제거
+                        if 'poster_url' in request.session:
+                            del request.session['poster_url']
+                except Exception as e:
+                    print(f"포스터 다운로드 실패: {e}")
+            
             post.save()
+            print(f"게시글 생성 성공: {post.title}")  # 디버깅용
             return redirect('blog')
+        else:
+            print(f"폼 유효성 검사 실패: {form.errors}")  # 디버깅용
     else:
-        form = PostForm()
+        # URL 파라미터에서 영화 정보 가져오기
+        movie_id = request.GET.get('movie_id')
+        title = request.GET.get('title')
+        poster_path = request.GET.get('poster')
+        
+        initial_data = {}
+        if title:
+            initial_data['title'] = f'[리뷰] {title}'
+        
+        form = PostForm(initial=initial_data)
+        
+        # 포스터 URL을 세션에 저장
+        if poster_path:
+            poster_url = f"https://image.tmdb.org/t/p/w500{poster_path}"
+            request.session['poster_url'] = poster_url
     
     return render(request, 'main/post_new.html', {
         'form': form,
-        'KAKAO_MAP_KEY': settings.KAKAO_MAP_KEY
+        'poster_url': request.session.get('poster_url', None)
     })
 
 def get_address_from_coords(request):
@@ -408,6 +419,9 @@ def get_address_from_coords(request):
     else:
         return JsonResponse({'error': 'Failed to fetch address'}, status=response.status_code)
     
+def lobby_view(request):
+    return render(request, 'main/lobby.html')
+
 @login_required
 def chat_view(request, room_name):
     messages = Message.objects.filter(room_name=room_name)
@@ -416,8 +430,132 @@ def chat_view(request, room_name):
         'messages': messages
     })
 
-@login_required
-def lobby_view(request):
-    return render(request, 'main/lobby.html')
+def movie_list(request):
+    query = request.GET.get('q', '')
+    if query:
+        movie = Movie()
+        search_results = movie.search(query)
+        # 개봉일이 지난 영화만 필터링
+        filtered_results = []
+        for result in search_results:
+            if result.release_date and result.release_date <= datetime.now().strftime('%Y-%m-%d'):
+                filtered_results.append(result)
+        context = {
+            'query': query,
+            'results': filtered_results,
+            'today': datetime.now().strftime('%Y-%m-%d')
+        }
+        return render(request, 'main/movie_list.html', context)
+    else:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
+        discover = Discover()
+        # 모든 영화 목록 가져오기
+        all_movies = []
+        for i in range(1, 6):  # 최대 5페이지까지 가져오기
+            try:
+                page = discover.discover_movies({
+                    'sort_by': 'release_date.desc',  # 개봉일 기준 내림차순 정렬
+                    'page': i,
+                    'include_adult': True,  # 성인 영화 포함
+                    'include_video': True,  # 비디오 포함
+                    'language': 'ko',  # 한국어
+                    'region': 'KR',  # 한국 지역
+                    'primary_release_date.lte': datetime.now().strftime('%Y-%m-%d')  # 현재 날짜 이전에 개봉한 영화만
+                })
+                print(f"페이지 {i}에서 가져온 영화 수: {len(page)}")  # 디버깅용
+                print(f"페이지 {i}의 첫 번째 영화: {page[0].title if page else '없음'}")  # 디버깅용
+                # 개봉일이 지난 영화만 필터링
+                for movie in page:
+                    print(f"영화: {movie.title}, 개봉일: {movie.release_date}")  # 디버깅용
+                    if movie.release_date and movie.release_date <= datetime.now().strftime('%Y-%m-%d'):
+                        all_movies.append(movie)
+            except Exception as e:
+                print(f"페이지 {i} 가져오기 실패: {e}")
+                continue
+        
+        print(f"전체 영화 수: {len(all_movies)}")  # 디버깅용
+        # 개봉일 기준으로 정렬 (최신순)
+        all_movies.sort(key=lambda x: x.release_date if x.release_date else '', reverse=True)
+        
+        # 페이지네이션 설정
+        paginator = Paginator(all_movies, 21)  # 한 페이지당 20개
+        page_number = request.GET.get('page', 1)  # 기본값 1로 설정
+        try:
+            page_obj = paginator.page(page_number)
+            print(f"현재 페이지: {page_obj.number}, 총 페이지 수: {paginator.num_pages}")  # 디버깅용
+            print(f"현재 페이지의 영화 수: {len(page_obj.object_list)}")  # 디버깅용
+        except (EmptyPage, PageNotAnInteger):
+            page_obj = paginator.page(1)
+            print("페이지 번호 오류 발생, 첫 페이지로 이동")  # 디버깅용
+        
+        context = {
+            'page_obj': page_obj,
+            'today': datetime.now().strftime('%Y-%m-%d')
+        }
+        return render(request, 'main/movie_list.html', context)
+
+def movie_search(request):
+    query = request.GET.get('q', '')
+    if query:
+        movie = Movie()
+        search_results = movie.search(query)
+        context = {
+            'query': query,
+            'results': search_results
+        }
+    else:
+        context = {}
+    return render(request, 'main/movie_search.html', context)
+
+def popular_movies(request):
+    query = request.GET.get('q', '')
+    if query:
+        movie = Movie()
+        search_results = movie.search(query)
+        context = {
+            'query': query,
+            'results': search_results
+        }
+        return render(request, 'main/popular_movies.html', context)
+    else:
+        movie = Movie()
+        popular = movie.popular()
+        
+        # 결과를 리스트로 변환
+        popular_list = list(popular)
+        
+        # 페이지네이션
+        paginator = Paginator(popular_list, 20)  # 한 페이지당 20개
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        context = {
+            'page_obj': page_obj
+        }
+        return render(request, 'main/popular_movies.html', context)
+
+def movie_detail(request, movie_id):
+    movie = Movie()
+    movie_details = movie.details(movie_id)
+    
+    # 영화 정보를 데이터베이스에 저장 (선택적)
+    MovieModel.objects.update_or_create(
+        tmdb_id=movie_details.id,
+        defaults={
+            'title': movie_details.title,
+            'overview': movie_details.overview,
+            'release_date': movie_details.release_date,
+            'poster_path': movie_details.poster_path,
+            'vote_average': movie_details.vote_average
+        }
+    )
+    
+    context = {
+        'movie': movie_details
+    }
+    return render(request, 'main/movie_detail.html', context)
 
 
