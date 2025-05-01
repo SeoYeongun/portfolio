@@ -69,8 +69,8 @@ class Message(models.Model):
 class Movie(models.Model):
     title = models.CharField(max_length=200)
     overview = models.TextField()
-    release_date = models.DateField()
-    poster_path = models.CharField(max_length=200)
+    release_date = models.DateField(null=True, blank=True)
+    poster_path = models.CharField(max_length=200, null=True, blank=True)
     vote_average = models.FloatField()
     tmdb_id = models.IntegerField(unique=True)
     

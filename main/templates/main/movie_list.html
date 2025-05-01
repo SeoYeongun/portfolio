@@ -53,8 +53,12 @@
                 </div>
                 <div class="card-footer">
                     <div class="d-flex justify-content-between">
+                        {% if movie.id %}
                         <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
                         <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-success">리뷰 작성</a>
+                        {% else %}
+                        <span class="text-danger">영화 ID가 없습니다.</span>
+                        {% endif %}
                     </div>
                 </div>
             </div>

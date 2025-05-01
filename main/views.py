@@ -409,11 +409,34 @@ def chat_view(request, room_name):
 def movie_list(request):
     query = request.GET.get('q', '')
     if query:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
         movie = Movie()
         search_results = movie.search(query)
+        
+        # 검색 결과에서 영화 정보 추출
+        movies = []
+        for result in search_results:
+            try:
+                movie_info = {
+                    'id': result.id,
+                    'title': result.title,
+                    'overview': result.overview,
+                    'release_date': result.release_date,
+                    'poster_path': result.poster_path,
+                    'vote_average': result.vote_average
+                }
+                movies.append(movie_info)
+                print(f"검색 결과 영화: {result.title}, ID: {result.id}")  # 디버깅용
+            except Exception as e:
+                print(f"영화 정보 추출 실패: {e}")
+                continue
+        
         context = {
             'query': query,
-            'results': search_results,
+            'results': movies
         }
         return render(request, 'main/movie_list.html', context)
     else:
@@ -439,15 +462,28 @@ def movie_list(request):
                 print(f"페이지 {i}의 첫 번째 영화: {page[0].title if page else '없음'}")  # 디버깅용
                 # 개봉일이 지난 영화만 필터링
                 for movie in page:
-                    if movie.release_date and movie.release_date <= datetime.now().strftime('%Y-%m-%d'):
-                        all_movies.append(movie)
+                    try:
+                        movie_info = {
+                            'id': movie.id,
+                            'title': movie.title,
+                            'overview': movie.overview,
+                            'release_date': movie.release_date,
+                            'poster_path': movie.poster_path,
+                            'vote_average': movie.vote_average
+                        }
+                        if movie.release_date and movie.release_date <= datetime.now().strftime('%Y-%m-%d'):
+                            all_movies.append(movie_info)
+                            print(f"영화: {movie.title}, ID: {movie.id}")  # 디버깅용
+                    except Exception as e:
+                        print(f"영화 정보 추출 실패: {e}")
+                        continue
             except Exception as e:
                 print(f"페이지 {i} 가져오기 실패: {e}")
                 continue
         
         print(f"전체 영화 수: {len(all_movies)}")  # 디버깅용
         # 개봉일 기준으로 정렬 (최신순)
-        all_movies.sort(key=lambda x: x.release_date if x.release_date else '', reverse=True)
+        all_movies.sort(key=lambda x: x['release_date'] if x['release_date'] else '', reverse=True)
         
         # 페이지네이션 설정
         paginator = Paginator(all_movies, 21)  # 한 페이지당 20개
@@ -469,11 +505,34 @@ def movie_list(request):
 def movie_search(request):
     query = request.GET.get('q', '')
     if query:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
         movie = Movie()
         search_results = movie.search(query)
+        
+        # 검색 결과에서 영화 정보 추출
+        movies = []
+        for result in search_results:
+            try:
+                movie_info = {
+                    'id': result.id,
+                    'title': result.title,
+                    'overview': result.overview,
+                    'release_date': result.release_date,
+                    'poster_path': result.poster_path,
+                    'vote_average': result.vote_average
+                }
+                movies.append(movie_info)
+                print(f"검색 결과 영화: {result.title}, ID: {result.id}")  # 디버깅용
+            except Exception as e:
+                print(f"영화 정보 추출 실패: {e}")
+                continue
+        
         context = {
             'query': query,
-            'results': search_results
+            'results': movies
         }
     else:
         context = {}
@@ -482,19 +541,61 @@ def movie_search(request):
 def popular_movies(request):
     query = request.GET.get('q', '')
     if query:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
         movie = Movie()
         search_results = movie.search(query)
+        
+        # 검색 결과에서 영화 정보 추출
+        movies = []
+        for result in search_results:
+            try:
+                movie_info = {
+                    'id': result.id,
+                    'title': result.title,
+                    'overview': result.overview,
+                    'release_date': result.release_date,
+                    'poster_path': result.poster_path,
+                    'vote_average': result.vote_average
+                }
+                movies.append(movie_info)
+                print(f"검색 결과 영화: {result.title}, ID: {result.id}")  # 디버깅용
+            except Exception as e:
+                print(f"영화 정보 추출 실패: {e}")
+                continue
+        
         context = {
             'query': query,
-            'results': search_results
+            'results': movies
         }
         return render(request, 'main/popular_movies.html', context)
     else:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
         movie = Movie()
         popular = movie.popular()
         
         # 결과를 리스트로 변환
-        popular_list = list(popular)
+        popular_list = []
+        for movie in popular:
+            try:
+                movie_info = {
+                    'id': movie.id,
+                    'title': movie.title,
+                    'overview': movie.overview,
+                    'release_date': movie.release_date,
+                    'poster_path': movie.poster_path,
+                    'vote_average': movie.vote_average
+                }
+                popular_list.append(movie_info)
+                print(f"인기 영화: {movie.title}, ID: {movie.id}")  # 디버깅용
+            except Exception as e:
+                print(f"영화 정보 추출 실패: {e}")
+                continue
         
         # 페이지네이션
         paginator = Paginator(popular_list, 20)  # 한 페이지당 20개
@@ -516,8 +617,8 @@ def movie_detail(request, movie_id):
         defaults={
             'title': movie_details.title,
             'overview': movie_details.overview,
-            'release_date': movie_details.release_date,
-            'poster_path': movie_details.poster_path,
+            'release_date': movie_details.release_date if movie_details.release_date else None,  # 개봉일이 비어있으면 None으로 설정
+            'poster_path': movie_details.poster_path if movie_details.poster_path else '',  # 포스터 경로가 비어있으면 빈 문자열로 설정
             'vote_average': movie_details.vote_average
         }
     )
