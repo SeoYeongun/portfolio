@@ -394,30 +394,6 @@ def post_new(request):
         'form': form,
         'poster_url': request.session.get('poster_url', None)
     })
-
-def get_address_from_coords(request):
-    lat = request.GET.get('lat')
-    lon = request.GET.get('lon')
-    
-    if not lat or not lon:
-        return JsonResponse({'error': 'Invalid coordinates'}, status=400)
-    
-    # 카카오 맵 API를 사용하여 좌표를 주소로 변환
-    kakao_api_key = settings.KAKAO_MAP_KEY  # 실제 카카오 API 키로 대체
-    url = f"https://dapi.kakao.com/v2/local/geo/coord2address.json?x={lon}&y={lat}"
-    headers = {"Authorization": f"KakaoAK {kakao_api_key}"}
-    
-    response = requests.get(url, headers=headers)
-    
-    if response.status_code == 200:
-        data = response.json()
-        if data['documents']:
-            address = data['documents'][0]['address']['address_name']
-            return JsonResponse({'address': address})
-        else:
-            return JsonResponse({'error': 'No address found'}, status=404)
-    else:
-        return JsonResponse({'error': 'Failed to fetch address'}, status=response.status_code)
     
 def lobby_view(request):
     return render(request, 'main/lobby.html')
@@ -435,15 +411,9 @@ def movie_list(request):
     if query:
         movie = Movie()
         search_results = movie.search(query)
-        # 개봉일이 지난 영화만 필터링
-        filtered_results = []
-        for result in search_results:
-            if result.release_date and result.release_date <= datetime.now().strftime('%Y-%m-%d'):
-                filtered_results.append(result)
         context = {
             'query': query,
-            'results': filtered_results,
-            'today': datetime.now().strftime('%Y-%m-%d')
+            'results': search_results,
         }
         return render(request, 'main/movie_list.html', context)
     else:
@@ -469,7 +439,6 @@ def movie_list(request):
                 print(f"페이지 {i}의 첫 번째 영화: {page[0].title if page else '없음'}")  # 디버깅용
                 # 개봉일이 지난 영화만 필터링
                 for movie in page:
-                    print(f"영화: {movie.title}, 개봉일: {movie.release_date}")  # 디버깅용
                     if movie.release_date and movie.release_date <= datetime.now().strftime('%Y-%m-%d'):
                         all_movies.append(movie)
             except Exception as e:

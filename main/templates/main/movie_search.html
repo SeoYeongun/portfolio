@@ -14,7 +14,7 @@
     <div class="row">
         {% for movie in results %}
         <div class="col-md-4 mb-4">
-            <div class="card">
+            <div class="card h-100">
                 {% if movie.poster_path %}
                 <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="card-img-top" alt="{{ movie.title }}">
                 {% endif %}
@@ -22,7 +22,12 @@
                     <h5 class="card-title">{{ movie.title }}</h5>
                     <p class="card-text">{{ movie.overview|truncatechars:150 }}</p>
                     <p class="card-text"><small class="text-muted">개봉일: {{ movie.release_date }}</small></p>
-                    <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
+                        <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-success">리뷰 작성</a>
+                    </div>
                 </div>
             </div>
         </div>
