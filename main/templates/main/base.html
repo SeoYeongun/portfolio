@@ -76,6 +76,16 @@
       color: #fff;
       background-color: #343a40;
   }
+  .btn-outline-success {
+      color: #000000;
+      border-color: #000000;
+      background-color: transparent;
+  }
+  .btn-outline-success:hover {
+      color: #fff;
+      background-color: #000000;
+      border-color: #000000;
+  }
 </style>
 {% endblock %}
 
@@ -122,12 +132,16 @@
         <a href="/movies/popular" class="font nav-link">POPULAR</a>
       </li>
       <li class="nav-item">
-        <a href="/movies/search" class="font nav-link">SEARCH</a>
-      </li>
-      <li class="nav-item">
         <a href="/chat/lobby" class="font nav-link">ChatLobby</a>
       </li>
     </ul>
+    <form class="d-flex ms-auto" role="search">
+      <input type="text" name="q" class="form-control" placeholder="영화 제목을 입력하세요" value="{{ query }}">
+      <button class="btn btn-outline-success" type="submit">
+        <i class="fa-solid fa-magnifying-glass"></i>
+      </button>
+    </form>
+
   </nav>
 </div>
 {% endblock %}
@@ -155,4 +169,28 @@
     {% endif %}
     {% endblock %}
   </div>
+    {% if results %}
+    <div class="row">
+        {% for movie in results %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                {% if movie.poster_path %}
+                <img src="https://image.tmdb.org/t/p/w500{{ movie.poster_path }}" class="card-img-top" alt="{{ movie.title }}">
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title">{{ movie.title }}</h5>
+                    <p class="card-text">{{ movie.overview|truncatechars:150 }}</p>
+                    <p class="card-text"><small class="text-muted">개봉일: {{ movie.release_date }}</small></p>
+                </div>
+                <div class="card-footer">
+                    <div class="d-flex justify-content-between">
+                        <a href="{% url 'movie_detail' movie.id %}" class="btn btn-primary">상세보기</a>
+                        <a href="{% url 'post_new' %}?movie_id={{ movie.id }}&title={{ movie.title }}&poster={{ movie.poster_path }}" class="btn btn-success">리뷰 작성</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
 </body>

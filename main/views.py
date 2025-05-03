@@ -30,8 +30,41 @@ tmdb.language = 'ko'
 def base(request):
     if request.user.is_authenticated:
         unread_messages = Message.objects.filter(receiver=request.user, is_read=False)
-        return render(request, 'main/base.html', {'unread_messages': unread_messages})
-    return render(request, 'main/base.html')
+    query = request.GET.get('q', '')
+    if query:
+        tmdb = TMDb()
+        tmdb.api_key = settings.TMDB_API_KEY
+        tmdb.language = 'ko'
+        
+        movie = Movie()
+        search_results = movie.search(query)
+        
+        # 검색 결과에서 영화 정보 추출
+        movies = []
+        for result in search_results:
+            try:
+                movie_info = {
+                    'id': result.id,
+                    'title': result.title,
+                    'overview': result.overview,
+                    'release_date': result.release_date,
+                    'poster_path': result.poster_path,
+                    'vote_average': result.vote_average
+                }
+                movies.append(movie_info)
+                print(f"검색 결과 영화: {result.title}, ID: {result.id}")  # 디버깅용
+            except Exception as e:
+                print(f"영화 정보 추출 실패: {e}")
+                continue
+        
+        context = {
+            'query': query,
+            'results': movies,
+            'unread_messages': unread_messages
+        }
+    else:
+        context = {'unread_messages': unread_messages}
+    return render(request, 'main/base.html', context)
 
 def blog(request):
     search_query = request.GET.get('search', '')
