@@ -24,4 +24,6 @@ urlpatterns = [
     path('movies/popular/', views.popular_movies, name='popular_movies'),
     path('movies/latest/', views.movie_list, name='movie_list'),
     path('movies/<int:movie_id>/', views.movie_detail, name='movie_detail'),
+    path('alert/', views.alert, name='alert'),
+    path('notification/<int:notification_id>/read/', views.mark_notification_as_read, name='mark_notification_as_read'),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT) 

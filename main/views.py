@@ -17,7 +17,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from django.conf import settings
 from tmdbv3api import TMDb, Movie, Discover
-from .models import Post, Comment, UserProfile, Message, Movie as MovieModel
+from .models import Post, Comment, UserProfile, Message, Movie as MovieModel, Notification
 from .forms import PostForm, SignUpForm, CommentForm
 from datetime import datetime
 
@@ -28,8 +28,10 @@ tmdb.language = 'ko'
 
 # Create your views here.
 def base(request):
+    unread_messages = []  # 기본값으로 빈 리스트 초기화
     if request.user.is_authenticated:
         unread_messages = Message.objects.filter(receiver=request.user, is_read=False)
+    
     query = request.GET.get('q', '')
     if query:
         tmdb = TMDb()
@@ -179,6 +181,8 @@ def post_like(request, pk):
         post.likes.remove(request.user)  # 좋아요 취소
     else:
         post.likes.add(request.user)  # 좋아요 추가
+        # 좋아요 알림 생성
+        create_like_notification(post, request.user)
     return redirect('post_detail', pk=pk)
 
 def signup(request):
@@ -333,11 +337,13 @@ def comment_create(request, pk):
     if request.method == 'POST':
         content = request.POST.get('content')
         if content:
-            Comment.objects.create(
+            comment = Comment.objects.create(
                 post=post,
                 author=request.user,
                 content=content
             )
+            # 댓글 알림 생성
+            create_comment_notification(comment)
     return redirect('post_detail', pk=pk)
 
 @login_required
@@ -349,6 +355,8 @@ def comment_like(request, pk):
         comment.likes.remove(request.user)  # 추천 취소
     else:
         comment.likes.add(request.user)  # 추천 추가
+        # 댓글 좋아요 알림 생성
+        create_like_notification(comment.post, request.user)
     return redirect('post_detail', pk=comment.post.pk)
 
 @login_required
@@ -660,5 +668,36 @@ def movie_detail(request, movie_id):
         'movie': movie_details
     }
     return render(request, 'main/movie_detail.html', context)
+
+@login_required
+def alert(request):
+    notifications = Notification.objects.filter(recipient=request.user, is_read=False)
+    return render(request, 'main/alert.html', {'notifications': notifications})
+
+@login_required
+def mark_notification_as_read(request, notification_id):
+    notification = get_object_or_404(Notification, id=notification_id, recipient=request.user)
+    notification.is_read = True
+    notification.save()
+    return redirect(notification.get_absolute_url())
+
+# 댓글 알림 생성 함수
+def create_comment_notification(comment):
+    if comment.post.author != comment.author:
+        Notification.objects.create(
+            recipient=comment.post.author,
+            notification_type='comment',
+            post=comment.post,
+            comment=comment
+        )
+
+# 좋아요 알림 생성 함수
+def create_like_notification(post, user):
+    if post.author != user:
+        Notification.objects.create(
+            recipient=post.author,
+            notification_type='like',
+            post=post
+        )
 
 

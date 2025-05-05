@@ -108,12 +108,9 @@
           <a href="{% url 'user_profile' user.username %}" class="me-3">
               <i class="fa-solid fa-user"></i>
           </a>
-          <form action="{% url 'logout' %}" method="post" class="d-inline">
-              {% csrf_token %}
-              <button type="submit" class="btn border-0 bg-transparent p-0">
-                  <i class="fa-solid fa-sign-out-alt text-dark"></i>
-              </button>
-          </form>
+          <a href="{% url 'alert' %}" class="me-3">
+            <i class="fa-regular fa-bell"></i>
+          </a>
           {% endif %}
       </div>
   </div>

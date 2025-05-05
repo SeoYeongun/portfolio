@@ -76,3 +76,24 @@ class Movie(models.Model):
     
     def __str__(self):
         return self.title 
+
+class Notification(models.Model):
+    NOTIFICATION_TYPES = (
+        ('comment', '댓글'),
+        ('like', '좋아요'),
+    )
+    
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    notification_type = models.CharField(max_length=20, choices=NOTIFICATION_TYPES)
+    post = models.ForeignKey('Post', on_delete=models.CASCADE, null=True, blank=True)
+    comment = models.ForeignKey('Comment', on_delete=models.CASCADE, null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False)
+
+    def get_absolute_url(self):
+        if self.post:
+            return self.post.get_absolute_url()
+        return '/'
+
+    class Meta:
+        ordering = ['-created_at'] 

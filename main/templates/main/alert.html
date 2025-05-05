@@ -1,0 +1,36 @@
+{% extends 'main/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="font mb-4">Alert</h2>
+    
+    {% if notifications %}
+    <div class="list-group">
+        {% for notification in notifications %}
+        <div class="list-group-item list-group-item-action">
+            <div class="d-flex w-100 justify-content-between">
+                <h5 class="mb-1">
+                    {% if notification.notification_type == 'comment' %}
+                        <i class="fas fa-comment text-primary"></i> 새로운 댓글이 달렸습니다
+                    {% elif notification.notification_type == 'like' %}
+                        <i class="fas fa-heart text-danger"></i> 좋아요를 받았습니다
+                    {% endif %}
+                </h5>
+                <small class="text-muted">{{ notification.created_at|timesince }} 전</small>
+            </div>
+            <p class="mb-1">
+                {% if notification.notification_type == 'comment' %}
+                    "{{ notification.comment.content|truncatechars:50 }}"
+                {% endif %}
+            </p>
+            <a href="{{ notification.get_absolute_url }}" class="btn btn-sm btn-outline-dark mt-2">게시글 보기</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info">
+        새로운 알림이 없습니다.
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 
